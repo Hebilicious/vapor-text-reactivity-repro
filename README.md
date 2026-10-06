@@ -65,11 +65,18 @@ the effect that writes the text never reruns.
 
 ### Cause and workaround
 
-Vitest Browser Mode's dependency optimizer pre-bundles `@vue/runtime-vapor`
-separately from the copy `@vizejs/vite-plugin`'s compiled output imports, so the
-page ends up with two module instances. The Vapor `renderEffect` tracks
-reactivity through one copy's effect scheduler while `ref()` updates run through
-the other's.
+`@vizejs/vite-plugin` pins a `.vue` file's `vue` import to the raw
+`vue.runtime.esm-bundler.js` unless the importer's `vue` already resolves to a
+pre-bundled dependency. Its `isOptimizedVueDependency` check only recognises
+`/node_modules/.vite/deps/vue.`, but Vitest pre-bundles into
+`node_modules/.vite/vitest/<hash>/deps/`. Under Vitest the check therefore
+fails. Compiled components then load the raw runtime while the test file loads
+the pre-bundled one, so the page ends up with two `@vue/runtime-vapor`
+instances. The Vapor `renderEffect` tracks reactivity through one copy's effect
+scheduler while `ref()` updates run through the other's.
+
+A fix compares the resolved path against Vite's `config.cacheDir` instead of the
+hard-coded `.vite/deps` segment.
 
 `vize/vitest.browser.workaround.config.ts` is identical to
 `vize/vitest.browser.config.ts` plus:
