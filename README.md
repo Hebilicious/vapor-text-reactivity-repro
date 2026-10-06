@@ -76,6 +76,39 @@ confirming this is not a `@vue/runtime-vapor` or Vitest Browser Mode problem in
 general — only `@vizejs/vite-plugin`'s Vapor output breaks, and only under
 Vitest Browser Mode.
 
+## Root cause and workaround
+
+This is a dual-package hazard: Vitest Browser Mode's dependency optimizer
+pre-bundles `@vue/runtime-vapor` into its own chunk, separately from the copy
+`@vizejs/vite-plugin`'s compiled output imports directly. The two end up as
+different module instances, so the `renderEffect` the Vapor compiler wires up
+for `#pure`/`#mixed` tracks reactivity through one copy's internal effect
+scheduler while `ref()` updates run through the other's — the state change is
+real, but the effect that would patch the DOM never reruns.
+
+`vize/vitest.browser.workaround.config.ts` is otherwise identical to
+`vize/vitest.browser.config.ts` with one addition:
+
+```ts
+optimizeDeps: {
+  exclude: ["@vue/runtime-vapor"],
+},
+```
+
+```sh
+pnpm exec vitest run --config vitest.browser.workaround.config.ts   # passes
+pnpm exec vitest run --config vitest.browser.config.ts              # fails
+```
+
+Confirmed under both `vitest@4.1.11` and `vitest@5.0.3` (ruling out this being
+fixed, or caused, by a specific Vitest version). No `resolve.dedupe` entry was
+needed in addition.
+
+The official `@vitejs/plugin-vue` side needs no such exclude — the bug is
+specific to how `@vizejs/vite-plugin`'s compiled output references
+`@vue/runtime-vapor`, which Vitest's optimizer and a plain `vite dev`/`build`
+apparently resolve differently.
+
 ## Versions
 
 - Node 24.17.0, Linux x86_64 (WSL2)

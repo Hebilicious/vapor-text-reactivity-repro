@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.vitest/
 .vitest-attachments/
 .playwright-cli/
 src/__screenshots__/
