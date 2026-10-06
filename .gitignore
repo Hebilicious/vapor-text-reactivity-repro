@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.vitest-attachments/
+.playwright-cli/
+src/__screenshots__/
