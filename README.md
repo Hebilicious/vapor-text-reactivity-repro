@@ -1,6 +1,6 @@
 # vize Vapor output: minimal reproductions
 
-Seven problems in the Vue 3.6 Vapor-mode output of
+Eight problems in the Vue 3.6 Vapor-mode output of
 [`@vizejs/vite-plugin`](https://www.npmjs.com/package/@vizejs/vite-plugin), each
 reproduced next to Vue's own compiler compiling the same component:
 
@@ -11,6 +11,7 @@ reproduced next to Vue's own compiler compiling the same component:
 5. [A nested component receives its owner's fallthrough attributes](#5-a-nested-component-receives-its-owners-fallthrough-attributes)
 6. [`:key` outside `v-for` is dropped](#6-key-outside-v-for-is-dropped)
 7. [A renamed or nested slot-prop destructure reads the wrong key](#7-a-renamed-or-nested-slot-prop-destructure-reads-the-wrong-key)
+8. [A template ref never fills the `ref` binding it names](#8-a-template-ref-never-fills-the-ref-binding-it-names)
 
 The repo holds two self-contained, otherwise-identical projects:
 
@@ -169,15 +170,15 @@ _setAttr(n0, "style", { color: _ctx.color });
   `"[object Object]"`. On HTML elements vize emits `setClass` and `setStyle`
   correctly; only SVG elements are affected.
 
-## 3 to 7. Components
+## 3 to 8. Components
 
-`src/components.browser.test.ts` checks the five problems below. Problem 1 also
+`src/components.browser.test.ts` checks the six problems below. Problem 1 also
 breaks text updates under Vitest, so run the vize side with the workaround
 config to see each problem on its own:
 
 ```sh
-pnpm exec vitest run --config vitest.browser.config.ts src/components.browser.test.ts             # official: 5 passed
-pnpm exec vitest run --config vitest.browser.workaround.config.ts src/components.browser.test.ts  # vize: 5 failed
+pnpm exec vitest run --config vitest.browser.config.ts src/components.browser.test.ts             # official: 6 passed
+pnpm exec vitest run --config vitest.browser.workaround.config.ts src/components.browser.test.ts  # vize: 6 failed
 ```
 
 | Check                                                        | Official | vize |
@@ -187,6 +188,7 @@ pnpm exec vitest run --config vitest.browser.workaround.config.ts src/components
 | 5. A component nested in the root element gets no fallthrough |    ✅    |  ❌  |
 | 6. A new `:key` replaces the keyed element                    |    ✅    |  ❌  |
 | 7. `v-slot="{ props: trigger }"` reads the `props` slot prop  |    ✅    |  ❌  |
+| 8. `ref="field"` fills `const field = shallowRef(null)`        |    ✅    |  ❌  |
 
 ## 3. A kebab-case component listener never receives its event
 
@@ -298,6 +300,38 @@ _renderEffect(() => _setText(x4, _toDisplayString(_slotProps1.label)));
 
 A plain `v-slot="{ props }"` works on both sides; only a rename or a nested
 pattern breaks.
+
+## 8. A template ref never fills the `ref` binding it names
+
+`src/BindingRef.vue` declares `const field = shallowRef(null)`, renders
+`<input ref="field">`, and reads `field` in `onMounted`. `#binding-state` stays
+`null`:
+
+```
+AssertionError: expected 'null' to be 'INPUT' // Object.is equality
+```
+
+Both compilers name the ref by a string, which Vapor resolves against the
+instance's `setupState`, and only in development. Vue's compiler returns the
+setup bindings, so the runtime builds `setupState` from them (and its production
+output passes the ref object itself). vize returns the render block and sets
+`setupState` itself, through `getCurrentInstance()`, which returns `null` for a
+Vapor instance, so the binding is never reached; in production the string would
+reach only `instance.refs` anyway:
+
+```js
+// official
+const __returned__ = { field, seen };
+return __returned__;
+_setStaticTemplateRef(n0, "field")
+// vize
+const __instance = _getCurrentInstance();
+const __ctx = _proxyRefs(__returned__);
+if (__instance) __instance.setupState = __ctx;
+_setRef(n0, "field");
+```
+
+`useTemplateRef("field")` works on both sides, because it reads `instance.refs`.
 
 ## Versions
 

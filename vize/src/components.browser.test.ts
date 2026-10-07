@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { createVaporApp } from "@vue/runtime-vapor";
 import { nextTick, type Component } from "vue";
+import BindingRef from "./BindingRef.vue";
 import EventParent from "./EventParent.vue";
 import FallthroughOuter from "./FallthroughOuter.vue";
 import KeyedText from "./KeyedText.vue";
@@ -47,5 +48,11 @@ describe("vapor components", () => {
     const root = mount(SlotConsumer);
     expect(root.querySelector("#slot-trigger")?.textContent).toBe("Open");
     expect(root.querySelector("#nested-label")!.textContent).toBe("Open");
+  });
+
+  test("8. ref on an element fills the setup ref of the same name", async () => {
+    const root = mount(BindingRef);
+    await nextTick();
+    expect(root.querySelector("#binding-state")!.textContent).toBe("INPUT");
   });
 });
