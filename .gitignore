@@ -3,5 +3,4 @@ dist/
 .vitest/
 .vitest-attachments/
 .playwright-cli/
-src/__screenshots__/
 __screenshots__/
