@@ -1,0 +1,7 @@
+<script setup lang="ts" vapor>
+const trigger = { id: "slot-trigger", label: "Open" };
+</script>
+
+<template>
+  <slot :props="trigger" />
+</template>

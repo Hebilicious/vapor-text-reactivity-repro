@@ -5,6 +5,7 @@ import EventParent from "./EventParent.vue";
 import FallthroughOuter from "./FallthroughOuter.vue";
 import KeyedText from "./KeyedText.vue";
 import RefParent from "./RefParent.vue";
+import SlotConsumer from "./SlotConsumer.vue";
 
 function mount(component: Component, props?: Record<string, unknown>): HTMLElement {
   const container = document.body.appendChild(document.createElement("div"));
@@ -40,5 +41,11 @@ describe("vapor components", () => {
     const second = root.querySelector("#keyed")!;
     expect(second.textContent).toBe("Version 2");
     expect(second).not.toBe(first);
+  });
+
+  test("7. a renamed or nested slot-prop destructure reads the slot prop it names", () => {
+    const root = mount(SlotConsumer);
+    expect(root.querySelector("#slot-trigger")?.textContent).toBe("Open");
+    expect(root.querySelector("#nested-label")!.textContent).toBe("Open");
   });
 });

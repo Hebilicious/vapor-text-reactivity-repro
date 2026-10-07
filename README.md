@@ -1,6 +1,6 @@
 # vize Vapor output: minimal reproductions
 
-Six problems in the Vue 3.6 Vapor-mode output of
+Seven problems in the Vue 3.6 Vapor-mode output of
 [`@vizejs/vite-plugin`](https://www.npmjs.com/package/@vizejs/vite-plugin), each
 reproduced next to Vue's own compiler compiling the same component:
 
@@ -10,6 +10,7 @@ reproduced next to Vue's own compiler compiling the same component:
 4. [`ref` on a child component never fills the template ref](#4-ref-on-a-child-component-never-fills-the-template-ref)
 5. [A nested component receives its owner's fallthrough attributes](#5-a-nested-component-receives-its-owners-fallthrough-attributes)
 6. [`:key` outside `v-for` is dropped](#6-key-outside-v-for-is-dropped)
+7. [A renamed or nested slot-prop destructure reads the wrong key](#7-a-renamed-or-nested-slot-prop-destructure-reads-the-wrong-key)
 
 The repo holds two self-contained, otherwise-identical projects:
 
@@ -168,15 +169,15 @@ _setAttr(n0, "style", { color: _ctx.color });
   `"[object Object]"`. On HTML elements vize emits `setClass` and `setStyle`
   correctly; only SVG elements are affected.
 
-## 3 to 6. Components
+## 3 to 7. Components
 
-`src/components.browser.test.ts` checks the four problems below. Problem 1 also
+`src/components.browser.test.ts` checks the five problems below. Problem 1 also
 breaks text updates under Vitest, so run the vize side with the workaround
 config to see each problem on its own:
 
 ```sh
-pnpm exec vitest run --config vitest.browser.config.ts src/components.browser.test.ts             # official: 4 passed
-pnpm exec vitest run --config vitest.browser.workaround.config.ts src/components.browser.test.ts  # vize: 4 failed
+pnpm exec vitest run --config vitest.browser.config.ts src/components.browser.test.ts             # official: 5 passed
+pnpm exec vitest run --config vitest.browser.workaround.config.ts src/components.browser.test.ts  # vize: 5 failed
 ```
 
 | Check                                                        | Official | vize |
@@ -185,6 +186,7 @@ pnpm exec vitest run --config vitest.browser.workaround.config.ts src/components
 | 4. `ref="child"` on a component fills `useTemplateRef`        |    ✅    |  ❌  |
 | 5. A component nested in the root element gets no fallthrough |    ✅    |  ❌  |
 | 6. A new `:key` replaces the keyed element                    |    ✅    |  ❌  |
+| 7. `v-slot="{ props: trigger }"` reads the `props` slot prop  |    ✅    |  ❌  |
 
 ## 3. A kebab-case component listener never receives its event
 
@@ -269,6 +271,33 @@ const n1 = _createKeyedFragment(() => (version.value), () => {
 // vize
 const t0 = _template("<div><button id=\"next-version\" type=\"button\">Next version</button><p id=\"keyed\">Version  </p></div>", true);
 ```
+
+## 7. A renamed or nested slot-prop destructure reads the wrong key
+
+`src/SlotOwner.vue` renders `<slot :props="trigger" />`, and `src/SlotConsumer.vue`
+reads it twice: renamed, `v-slot="{ props: trigger }"`, and nested,
+`v-slot="{ props: { label } }"`. Mounting throws:
+
+```
+TypeError: Cannot read properties of undefined (reading 'id')
+```
+
+Vue's compiler reads each name through the key it was destructured from. vize
+reads the local name as if it were the slot prop's own key, so `trigger` becomes
+`_slotProps0.trigger` and `label` becomes `_slotProps1.label`, both `undefined`:
+
+```js
+// official
+const _trigger = _slotProps0.props;
+_setProp(n0, "id", _trigger.id);
+_renderEffect(() => _setText(x2, _toDisplayString(_slotProps0.props.label)));
+// vize
+_setProp(n3, "id", _slotProps0.trigger.id);
+_renderEffect(() => _setText(x4, _toDisplayString(_slotProps1.label)));
+```
+
+A plain `v-slot="{ props }"` works on both sides; only a rename or a nested
+pattern breaks.
 
 ## Versions
 
