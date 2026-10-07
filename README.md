@@ -1,16 +1,20 @@
 # vize Vapor output: minimal reproductions
 
-Two problems in the Vue 3.6 Vapor-mode output of
+Six problems in the Vue 3.6 Vapor-mode output of
 [`@vizejs/vite-plugin`](https://www.npmjs.com/package/@vizejs/vite-plugin), each
 reproduced next to Vue's own compiler compiling the same component:
 
 1. [Reactive text does not update under Vitest Browser Mode](#1-reactive-text-does-not-update-under-vitest-browser-mode)
 2. [SVG: `v-if` branches and dynamic `:class`/`:style` are broken](#2-svg-v-if-branches-and-dynamic-classstyle-are-broken)
+3. [A kebab-case component listener never receives its event](#3-a-kebab-case-component-listener-never-receives-its-event)
+4. [`ref` on a child component never fills the template ref](#4-ref-on-a-child-component-never-fills-the-template-ref)
+5. [A nested component receives its owner's fallthrough attributes](#5-a-nested-component-receives-its-owners-fallthrough-attributes)
+6. [`:key` outside `v-for` is dropped](#6-key-outside-v-for-is-dropped)
 
 The repo holds two self-contained, otherwise-identical projects:
 
 - `official/`: `@vitejs/plugin-vue@6.0.7`, Vue's own compiler. Control group.
-- `vize/`: `@vizejs/vite-plugin@0.434.0` with `vapor: true`. Reproduces both problems.
+- `vize/`: `@vizejs/vite-plugin@0.434.0` with `vapor: true`. Reproduces every problem.
 
 Every component is byte-identical on both sides, uses `<script setup lang="ts" vapor>`,
 and is mounted with `createVaporApp` from `@vue/runtime-vapor`.
@@ -163,6 +167,108 @@ _setAttr(n0, "style", { color: _ctx.color });
   writes the raw value: an array becomes `"icon,tier-1"` and an object becomes
   `"[object Object]"`. On HTML elements vize emits `setClass` and `setStyle`
   correctly; only SVG elements are affected.
+
+## 3 to 6. Components
+
+`src/components.browser.test.ts` checks the four problems below. Problem 1 also
+breaks text updates under Vitest, so run the vize side with the workaround
+config to see each problem on its own:
+
+```sh
+pnpm exec vitest run --config vitest.browser.config.ts src/components.browser.test.ts             # official: 4 passed
+pnpm exec vitest run --config vitest.browser.workaround.config.ts src/components.browser.test.ts  # vize: 4 failed
+```
+
+| Check                                                        | Official | vize |
+| ------------------------------------------------------------ | :------: | :--: |
+| 3. `@close-preset` receives `emit("closePreset")`             |    ✅    |  ❌  |
+| 4. `ref="child"` on a component fills `useTemplateRef`        |    ✅    |  ❌  |
+| 5. A component nested in the root element gets no fallthrough |    ✅    |  ❌  |
+| 6. A new `:key` replaces the keyed element                    |    ✅    |  ❌  |
+
+## 3. A kebab-case component listener never receives its event
+
+`src/EventParent.vue` listens with `<EventChild @close-preset="closed = true" />`,
+and `src/EventChild.vue` calls `emit("closePreset")`. Clicking the child's
+button leaves `#closed` at `false`:
+
+```
+AssertionError: expected 'false' to be 'true' // Object.is equality
+```
+
+Vapor's `emit` looks up the camelCase handler key. Vue's compiler camelizes the
+listener; vize keeps the kebab-case name:
+
+```js
+// official
+const n0 = _createComponent(EventChild, { onClosePreset: () => _on_close_preset })
+// vize
+const n0 = _createComponentWithFallback(_component_EventChild, { "onClose-preset": () => (($event) => _ctx.closed = true) }, null, true);
+```
+
+## 4. `ref` on a child component never fills the template ref
+
+`src/RefParent.vue` renders `<RefChild ref="child" />` and reads
+`useTemplateRef("child")`. `#ref-state` stays `null`:
+
+```
+AssertionError: expected 'null' to be 'hello' // Object.is equality
+```
+
+Vue's compiler registers the template ref; vize passes `ref` as a prop:
+
+```js
+// official
+const n0 = _createComponent(RefChild)
+_setStaticTemplateRef(n0, child, null, "child")
+// vize
+const n0 = _createComponentWithFallback(_component_RefChild, { ref: () => "child" }, null, true);
+```
+
+## 5. A nested component receives its owner's fallthrough attributes
+
+`src/FallthroughOuter.vue` renders `<section id="outer"><FallthroughInner /></section>`
+and is mounted with `{ "data-owner": "outer" }`. The attribute belongs on
+`#outer` only, but `#inner` gets it too:
+
+```
+AssertionError: expected true to be false // Object.is equality
+```
+
+The last argument of `createComponent` marks a component as its render's single
+root, which receives fallthrough attributes. vize passes `true` for every
+component, including one nested inside the root element:
+
+```js
+// official
+const n0 = _createComponent(FallthroughInner)
+// vize
+const n0 = _createComponentWithFallback(_component_FallthroughInner, null, null, true);
+```
+
+## 6. `:key` outside `v-for` is dropped
+
+`src/KeyedText.vue` renders `<p id="keyed" :key="version">Version {{ version }}</p>`.
+After `version` changes, `#keyed` must be a new element. vize keeps the old one:
+
+```
+AssertionError: expected <p id="keyed"></p> not to be <p id="keyed"></p> // Object.is equality
+```
+
+Vue's compiler wraps the keyed element in `createKeyedFragment`, which replaces
+it when the key changes. vize compiles the element into its parent's template
+and the binding disappears. The same happens to `:key` on a component, such as a
+`<TransitionGroup :key="page">` meant to restart for each page:
+
+```js
+// official
+const n1 = _createKeyedFragment(() => (version.value), () => {
+  const n2 = t0()
+  return n2
+})
+// vize
+const t0 = _template("<div><button id=\"next-version\" type=\"button\">Next version</button><p id=\"keyed\">Version  </p></div>", true);
+```
 
 ## Versions
 
