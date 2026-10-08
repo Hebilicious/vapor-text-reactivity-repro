@@ -2,16 +2,21 @@
 
 Eight problems in the Vue 3.6 Vapor-mode output of
 [`@vizejs/vite-plugin`](https://www.npmjs.com/package/@vizejs/vite-plugin), each
-reproduced next to Vue's own compiler compiling the same component:
+reproduced next to Vue's own compiler compiling the same component. Each one has
+an issue and a merged fix in the fork
+[Hebilicious/vize](https://github.com/Hebilicious/vize), on its `vapor-fixes` branch:
+Vize 0.435.0 with the eight fixes and nothing else.
 
-1. [Reactive text does not update under Vitest Browser Mode](#1-reactive-text-does-not-update-under-vitest-browser-mode)
-2. [SVG: `v-if` branches and dynamic `:class`/`:style` are broken](#2-svg-v-if-branches-and-dynamic-classstyle-are-broken)
-3. [A kebab-case component listener never receives its event](#3-a-kebab-case-component-listener-never-receives-its-event)
-4. [`ref` on a child component never fills the template ref](#4-ref-on-a-child-component-never-fills-the-template-ref)
-5. [A nested component receives its owner's fallthrough attributes](#5-a-nested-component-receives-its-owners-fallthrough-attributes)
-6. [`:key` outside `v-for` is dropped](#6-key-outside-v-for-is-dropped)
-7. [A renamed or nested slot-prop destructure reads the wrong key](#7-a-renamed-or-nested-slot-prop-destructure-reads-the-wrong-key)
-8. [A template ref never fills the `ref` binding it names](#8-a-template-ref-never-fills-the-ref-binding-it-names)
+| # | Problem | Fork issue | Fix |
+| - | ------- | ---------- | --- |
+| 1 | [Reactive text does not update under Vitest Browser Mode](#1-reactive-text-does-not-update-under-vitest-browser-mode) | [#1](https://github.com/Hebilicious/vize/issues/1) | [#2](https://github.com/Hebilicious/vize/pull/2) |
+| 2 | [SVG: `v-if` branches and dynamic `:class`/`:style` are broken](#2-svg-v-if-branches-and-dynamic-classstyle-are-broken) | [#3](https://github.com/Hebilicious/vize/issues/3) | [#4](https://github.com/Hebilicious/vize/pull/4) |
+| 3 | [A kebab-case component listener never receives its event](#3-a-kebab-case-component-listener-never-receives-its-event) | [#5](https://github.com/Hebilicious/vize/issues/5) | [#6](https://github.com/Hebilicious/vize/pull/6) |
+| 4 | [`ref` on a child component never fills the template ref](#4-ref-on-a-child-component-never-fills-the-template-ref) | [#7](https://github.com/Hebilicious/vize/issues/7) | [#8](https://github.com/Hebilicious/vize/pull/8) |
+| 5 | [A nested component receives its owner's fallthrough attributes](#5-a-nested-component-receives-its-owners-fallthrough-attributes) | [#9](https://github.com/Hebilicious/vize/issues/9) | [#10](https://github.com/Hebilicious/vize/pull/10) |
+| 6 | [`:key` outside `v-for` is dropped](#6-key-outside-v-for-is-dropped) | [#11](https://github.com/Hebilicious/vize/issues/11) | [#12](https://github.com/Hebilicious/vize/pull/12) |
+| 7 | [A renamed or nested slot-prop destructure reads the wrong key](#7-a-renamed-or-nested-slot-prop-destructure-reads-the-wrong-key) | [#13](https://github.com/Hebilicious/vize/issues/13) | [#14](https://github.com/Hebilicious/vize/pull/14) |
+| 8 | [A template ref never fills the `ref` binding it names](#8-a-template-ref-never-fills-the-ref-binding-it-names) | [#15](https://github.com/Hebilicious/vize/issues/15) | [#16](https://github.com/Hebilicious/vize/pull/16) |
 
 The repo holds two self-contained, otherwise-identical projects:
 
@@ -29,6 +34,8 @@ pnpm dev                    # http://localhost:5173 renders both components
 ```
 
 ## 1. Reactive text does not update under Vitest Browser Mode
+
+Fork: issue [Hebilicious/vize#1](https://github.com/Hebilicious/vize/issues/1), fixed by [#2](https://github.com/Hebilicious/vize/pull/2).
 
 | Compiler                                      | Plain `vite dev` / `vite build` | Vitest Browser Mode |
 | --------------------------------------------- | :-----------------------------: | :-----------------: |
@@ -101,6 +108,8 @@ Same result under `vitest@4.1.11` and `vitest@5.0.3`. No `resolve.dedupe` entry
 was needed. The official side needs no exclude.
 
 ## 2. SVG: `v-if` branches and dynamic `:class`/`:style` are broken
+
+Fork: issue [Hebilicious/vize#3](https://github.com/Hebilicious/vize/issues/3), fixed by [#4](https://github.com/Hebilicious/vize/pull/4).
 
 | Check (on `vapor` output)                            | Official | vize |
 | ---------------------------------------------------- | :------: | :--: |
@@ -192,6 +201,8 @@ pnpm exec vitest run --config vitest.browser.workaround.config.ts src/components
 
 ## 3. A kebab-case component listener never receives its event
 
+Fork: issue [Hebilicious/vize#5](https://github.com/Hebilicious/vize/issues/5), fixed by [#6](https://github.com/Hebilicious/vize/pull/6).
+
 `src/EventParent.vue` listens with `<EventChild @close-preset="closed = true" />`,
 and `src/EventChild.vue` calls `emit("closePreset")`. Clicking the child's
 button leaves `#closed` at `false`:
@@ -212,6 +223,8 @@ const n0 = _createComponentWithFallback(_component_EventChild, { "onClose-preset
 
 ## 4. `ref` on a child component never fills the template ref
 
+Fork: issue [Hebilicious/vize#7](https://github.com/Hebilicious/vize/issues/7), fixed by [#8](https://github.com/Hebilicious/vize/pull/8).
+
 `src/RefParent.vue` renders `<RefChild ref="child" />` and reads
 `useTemplateRef("child")`. `#ref-state` stays `null`:
 
@@ -230,6 +243,8 @@ const n0 = _createComponentWithFallback(_component_RefChild, { ref: () => "child
 ```
 
 ## 5. A nested component receives its owner's fallthrough attributes
+
+Fork: issue [Hebilicious/vize#9](https://github.com/Hebilicious/vize/issues/9), fixed by [#10](https://github.com/Hebilicious/vize/pull/10).
 
 `src/FallthroughOuter.vue` renders `<section id="outer"><FallthroughInner /></section>`
 and is mounted with `{ "data-owner": "outer" }`. The attribute belongs on
@@ -251,6 +266,8 @@ const n0 = _createComponentWithFallback(_component_FallthroughInner, null, null,
 ```
 
 ## 6. `:key` outside `v-for` is dropped
+
+Fork: issue [Hebilicious/vize#11](https://github.com/Hebilicious/vize/issues/11), fixed by [#12](https://github.com/Hebilicious/vize/pull/12).
 
 `src/KeyedText.vue` renders `<p id="keyed" :key="version">Version {{ version }}</p>`.
 After `version` changes, `#keyed` must be a new element. vize keeps the old one:
@@ -275,6 +292,8 @@ const t0 = _template("<div><button id=\"next-version\" type=\"button\">Next vers
 ```
 
 ## 7. A renamed or nested slot-prop destructure reads the wrong key
+
+Fork: issue [Hebilicious/vize#13](https://github.com/Hebilicious/vize/issues/13), fixed by [#14](https://github.com/Hebilicious/vize/pull/14).
 
 `src/SlotOwner.vue` renders `<slot :props="trigger" />`, and `src/SlotConsumer.vue`
 reads it twice: renamed, `v-slot="{ props: trigger }"`, and nested,
@@ -302,6 +321,8 @@ A plain `v-slot="{ props }"` works on both sides; only a rename or a nested
 pattern breaks.
 
 ## 8. A template ref never fills the `ref` binding it names
+
+Fork: issue [Hebilicious/vize#15](https://github.com/Hebilicious/vize/issues/15), fixed by [#16](https://github.com/Hebilicious/vize/pull/16).
 
 `src/BindingRef.vue` declares `const field = shallowRef(null)`, renders
 `<input ref="field">`, and reads `field` in `onMounted`. `#binding-state` stays
