@@ -1,11 +1,11 @@
 # vize Vapor output: minimal reproductions
 
-Eight problems in the Vue 3.6 Vapor-mode output of
+Nine problems in the Vue 3.6 Vapor-mode output of
 [`@vizejs/vite-plugin`](https://www.npmjs.com/package/@vizejs/vite-plugin), each
 reproduced next to Vue's own compiler compiling the same component. Each one has
 an issue and a merged fix in the fork
 [Hebilicious/vize](https://github.com/Hebilicious/vize), on its `vapor-fixes` branch:
-Vize 0.435.0 with the eight fixes and nothing else.
+Vize 0.435.0 with the nine fixes and nothing else.
 
 | # | Problem | Fork issue | Fix |
 | - | ------- | ---------- | --- |
@@ -17,6 +17,7 @@ Vize 0.435.0 with the eight fixes and nothing else.
 | 6 | [`:key` outside `v-for` is dropped](#6-key-outside-v-for-is-dropped) | [#11](https://github.com/Hebilicious/vize/issues/11) | [#12](https://github.com/Hebilicious/vize/pull/12) |
 | 7 | [A renamed or nested slot-prop destructure reads the wrong key](#7-a-renamed-or-nested-slot-prop-destructure-reads-the-wrong-key) | [#13](https://github.com/Hebilicious/vize/issues/13) | [#14](https://github.com/Hebilicious/vize/pull/14) |
 | 8 | [A template ref never fills the `ref` binding it names](#8-a-template-ref-never-fills-the-ref-binding-it-names) | [#15](https://github.com/Hebilicious/vize/issues/15) | [#16](https://github.com/Hebilicious/vize/pull/16) |
+| 9 | [An inline handler with a typed parameter never runs](#9-an-inline-handler-with-a-typed-parameter-never-runs) | [#17](https://github.com/Hebilicious/vize/issues/17) | [#18](https://github.com/Hebilicious/vize/pull/18) |
 
 The repo holds two self-contained, otherwise-identical projects:
 
@@ -179,15 +180,15 @@ _setAttr(n0, "style", { color: _ctx.color });
   `"[object Object]"`. On HTML elements vize emits `setClass` and `setStyle`
   correctly; only SVG elements are affected.
 
-## 3 to 8. Components
+## 3 to 9. Components
 
-`src/components.browser.test.ts` checks the six problems below. Problem 1 also
+`src/components.browser.test.ts` checks the seven problems below. Problem 1 also
 breaks text updates under Vitest, so run the vize side with the workaround
 config to see each problem on its own:
 
 ```sh
-pnpm exec vitest run --config vitest.browser.config.ts src/components.browser.test.ts             # official: 6 passed
-pnpm exec vitest run --config vitest.browser.workaround.config.ts src/components.browser.test.ts  # vize: 6 failed
+pnpm exec vitest run --config vitest.browser.config.ts src/components.browser.test.ts             # official: 7 passed
+pnpm exec vitest run --config vitest.browser.workaround.config.ts src/components.browser.test.ts  # vize: 7 failed
 ```
 
 | Check                                                        | Official | vize |
@@ -198,6 +199,7 @@ pnpm exec vitest run --config vitest.browser.workaround.config.ts src/components
 | 6. A new `:key` replaces the keyed element                    |    ✅    |  ❌  |
 | 7. `v-slot="{ props: trigger }"` reads the `props` slot prop  |    ✅    |  ❌  |
 | 8. `ref="field"` fills `const field = shallowRef(null)`        |    ✅    |  ❌  |
+| 9. `@ping="(value: string) => …"` runs                         |    ✅    |  ❌  |
 
 ## 3. A kebab-case component listener never receives its event
 
@@ -353,6 +355,29 @@ _setRef(n0, "field");
 ```
 
 `useTemplateRef("field")` works on both sides, because it reads `instance.refs`.
+
+## 9. An inline handler with a typed parameter never runs
+
+Fork: issue [Hebilicious/vize#17](https://github.com/Hebilicious/vize/issues/17), fixed by [#18](https://github.com/Hebilicious/vize/pull/18).
+
+`src/TypedHandler.vue` listens with `<TypedHandlerChild @ping="(value: string) => (received = value)" />`,
+and the child emits `ping` with `"pong"`. `#typed-received` stays `none`:
+
+```
+AssertionError: expected 'none' to be 'pong' // Object.is equality
+```
+
+vize decides whether a handler is a function by parsing it as JavaScript, and a
+parameter type annotation fails that parse, so the arrow is wrapped as a
+statement that returns it instead of calling it. An untyped `(value) => ...`
+compiles correctly:
+
+```js
+// official
+const n0 = _createComponent(_ctx.TypedHandlerChild, { onPing: () => _on_ping });
+// vize
+const n0 = _createComponentWithFallback(_component_TypedHandlerChild, { onPing: () => (($event) => ((value) => _ctx.received = value)) }, null, true);
+```
 
 ## Versions
 

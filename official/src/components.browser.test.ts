@@ -7,6 +7,7 @@ import FallthroughOuter from "./FallthroughOuter.vue";
 import KeyedText from "./KeyedText.vue";
 import RefParent from "./RefParent.vue";
 import SlotConsumer from "./SlotConsumer.vue";
+import TypedHandler from "./TypedHandler.vue";
 
 function mount(component: Component, props?: Record<string, unknown>): HTMLElement {
   const container = document.body.appendChild(document.createElement("div"));
@@ -54,5 +55,12 @@ describe("vapor components", () => {
     const root = mount(BindingRef);
     await nextTick();
     expect(root.querySelector("#binding-state")!.textContent).toBe("INPUT");
+  });
+
+  test("9. an inline handler with a typed parameter runs", async () => {
+    const root = mount(TypedHandler);
+    root.querySelector<HTMLButtonElement>("#typed-ping")!.click();
+    await nextTick();
+    expect(root.querySelector("#typed-received")!.textContent).toBe("pong");
   });
 });
