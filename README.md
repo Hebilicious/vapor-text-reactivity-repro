@@ -205,6 +205,9 @@ pnpm exec vitest run --config vitest.browser.workaround.config.ts src/components
 
 Fork: issue [Hebilicious/vize#5](https://github.com/Hebilicious/vize/issues/5), fixed by [#6](https://github.com/Hebilicious/vize/pull/6).
 
+Upstream: fixed by [ubugeeei-prod/vize#8133](https://github.com/ubugeeei-prod/vize/pull/8133)
+(reported in [#7885](https://github.com/ubugeeei-prod/vize/issues/7885)); passes on upstream `main` at `b7198eaea`.
+
 `src/EventParent.vue` listens with `<EventChild @close-preset="closed = true" />`,
 and `src/EventChild.vue` calls `emit("closePreset")`. Clicking the child's
 button leaves `#closed` at `false`:
@@ -226,6 +229,9 @@ const n0 = _createComponentWithFallback(_component_EventChild, { "onClose-preset
 ## 4. `ref` on a child component never fills the template ref
 
 Fork: issue [Hebilicious/vize#7](https://github.com/Hebilicious/vize/issues/7), fixed by [#8](https://github.com/Hebilicious/vize/pull/8).
+
+Upstream: fixed by [ubugeeei-prod/vize#8219](https://github.com/ubugeeei-prod/vize/pull/8219)
+(reported in [#7882](https://github.com/ubugeeei-prod/vize/issues/7882)); passes on upstream `main` at `b7198eaea`.
 
 `src/RefParent.vue` renders `<RefChild ref="child" />` and reads
 `useTemplateRef("child")`. `#ref-state` stays `null`:
@@ -270,6 +276,9 @@ const n0 = _createComponentWithFallback(_component_FallthroughInner, null, null,
 ## 6. `:key` outside `v-for` is dropped
 
 Fork: issue [Hebilicious/vize#11](https://github.com/Hebilicious/vize/issues/11), fixed by [#12](https://github.com/Hebilicious/vize/pull/12).
+
+Upstream: fixed by [ubugeeei-prod/vize#8101](https://github.com/ubugeeei-prod/vize/pull/8101)
+(reported in [#7883](https://github.com/ubugeeei-prod/vize/issues/7883)); passes on upstream `main` at `b7198eaea`.
 
 `src/KeyedText.vue` renders `<p id="keyed" :key="version">Version {{ version }}</p>`.
 After `version` changes, `#keyed` must be a new element. vize keeps the old one:
@@ -325,6 +334,9 @@ pattern breaks.
 ## 8. A template ref never fills the `ref` binding it names
 
 Fork: issue [Hebilicious/vize#15](https://github.com/Hebilicious/vize/issues/15), fixed by [#16](https://github.com/Hebilicious/vize/pull/16).
+
+Upstream: fixed by [ubugeeei-prod/vize#8132](https://github.com/ubugeeei-prod/vize/pull/8132),
+which hands the template-ref setter the setup bindings; passes on upstream `main` at `b7198eaea`.
 
 `src/BindingRef.vue` declares `const field = shallowRef(null)`, renders
 `<input ref="field">`, and reads `field` in `onMounted`. `#binding-state` stays
